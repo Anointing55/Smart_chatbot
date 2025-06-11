@@ -2,6 +2,7 @@ import os
 import gradio as gr
 import requests
 import cohere
+from serpapi import GoogleSearch
 
 # Load environment variables
 COHERE_API_KEY = os.getenv("COHERE_API_KEY")
@@ -20,7 +21,7 @@ def query_together(prompt):
     payload = {
         "model": "meta-llama/Llama-3-8b-chat-hf",
         "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 600,
+        "max_tokens": 7000,
         "temperature": 0.7
     }
     try:
@@ -44,9 +45,8 @@ def query_serpapi(prompt):
             "q": prompt,
             "api_key": SERPAPI_KEY
         }
-        response = requests.get("https://serpapi.com/search", params=params)
-        result = response.json()
-        results = result.get("organic_results", [])
+        search = GoogleSearch(params)
+        results = search.get_dict().get("organic_results", [])
         if results:
             return results[0].get("snippet", "No snippet available.")
         else:
@@ -54,15 +54,19 @@ def query_serpapi(prompt):
     except Exception as e:
         return f"[SerpAPI Error] {e}"
 
-# ───── Identity/Contact/Service Check ─────
-def is_service_or_identity_question(prompt):
-    keywords = [
-        "who made you", "who created you", "who developed you", "your creator", "your developer",
-        "who built you", "contact info", "how to reach you", "graphic design", "website design",
-        "build a website", "build a chatbot", "build an ai", "ai creation", "designer", "hire you"
+# ───── Trigger Checks ─────
+def is_identity_or_service_question(prompt):
+    prompt = prompt.lower()
+    identity_keywords = [
+        "who made you", "who created you", "who developed you", "who built you",
+        "your creator", "who programmed you"
     ]
-    prompt_lower = prompt.lower()
-    return any(kw in prompt_lower for kw in keywords)
+    service_keywords = [
+        "graphic design", "logo design", "website", "ai creation", "who can build a site",
+        "help me with ai", "need website", "design a site", "design", "create ai",
+        "developer", "freelancer", "make me a bot"
+    ]
+    return any(kw in prompt for kw in identity_keywords + service_keywords)
 
 # ───── Router Function ─────
 def smart_chat_router(prompt, mode="fast"):
@@ -70,11 +74,11 @@ def smart_chat_router(prompt, mode="fast"):
     if not prompt:
         return "Hi! Ask me anything 😊"
 
-    if is_service_or_identity_question(prompt):
+    if is_identity_or_service_question(prompt):
         return (
-            "I was developed by **Anointing**, a skilled expert in AI development, graphic design, and website creation.\n\n"
-            "If you need custom AI tools, professional websites, or stunning graphic design, feel free to contact him at:\n"
-            "**anointingomowumi62@gmail.com**"
+            "**This chatbot was created by Anointing**, a skilled professional in AI development, "
+            "graphic design, and modern website creation. "
+            "For inquiries or services, reach out via email: **anointingomowumi62@gmail.com**"
         )
 
     if mode == "fast":
