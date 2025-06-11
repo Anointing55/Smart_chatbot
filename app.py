@@ -1,5 +1,3 @@
-# app.py
-
 import os
 import gradio as gr
 import requests
@@ -22,7 +20,7 @@ def query_together(prompt):
     payload = {
         "model": "meta-llama/Llama-3-8b-chat-hf",
         "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 7000,
+        "max_tokens": 600,
         "temperature": 0.7
     }
     try:
@@ -48,16 +46,30 @@ def query_serpapi(prompt):
         }
         response = requests.get("https://serpapi.com/search", params=params)
         result = response.json()
-        return result["organic_results"][0]["snippet"]
+        if "organic_results" in result and len(result["organic_results"]) > 0:
+            return result["organic_results"][0].get("snippet", "No snippet available.")
+        else:
+            return "Sorry, I couldn't find any relevant search results."
     except Exception as e:
         return f"[SerpAPI Error] {e}"
+
+# ───── Identity Trigger Check ─────
+def is_identity_question(prompt):
+    keywords = ["who made you", "who created you", "who developed you", "who built you", "your creator", "who programmed you"]
+    prompt_lower = prompt.lower()
+    return any(kw in prompt_lower for kw in keywords)
 
 # ───── Router Function ─────
 def smart_chat_router(prompt, mode="fast"):
     prompt = prompt.strip()
     if not prompt:
         return "Hi! Ask me anything 😊"
-    
+
+    if is_identity_question(prompt):
+        return ("I was developed by **Anointing**, an expert in AI development, "
+                "graphic design, and modern website creation. If you're looking to build powerful AI systems or high-quality websites, "
+                "Anointing is the person to talk to.")
+
     if mode == "fast":
         return query_together(prompt)
     elif mode == "deep":
