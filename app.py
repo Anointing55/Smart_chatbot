@@ -2,7 +2,6 @@ import os
 import gradio as gr
 import requests
 import cohere
-from serpapi import GoogleSearch
 
 # Load environment variables
 COHERE_API_KEY = os.getenv("COHERE_API_KEY")
@@ -45,12 +44,12 @@ def query_serpapi(prompt):
             "q": prompt,
             "api_key": SERPAPI_KEY
         }
-        search = GoogleSearch(params)
-        results = search.get_dict().get("organic_results", [])
-        if results:
-            return results[0].get("snippet", "No snippet available.")
+        response = requests.get("https://serpapi.com/search", params=params)
+        result = response.json()
+        if "organic_results" in result and result["organic_results"]:
+            return result["organic_results"][0].get("snippet", "No snippet available.")
         else:
-            return "Sorry, I couldn't find any relevant search results."
+            return "No relevant results found from search."
     except Exception as e:
         return f"[SerpAPI Error] {e}"
 
@@ -64,7 +63,7 @@ def is_identity_or_service_question(prompt):
     service_keywords = [
         "graphic design", "logo design", "website", "ai creation", "who can build a site",
         "help me with ai", "need website", "design a site", "design", "create ai",
-        "developer", "freelancer", "make me a bot"
+        "developer", "freelancer", "make me a bot", "contact", "how can i reach you"
     ]
     return any(kw in prompt for kw in identity_keywords + service_keywords)
 
@@ -76,9 +75,9 @@ def smart_chat_router(prompt, mode="fast"):
 
     if is_identity_or_service_question(prompt):
         return (
-            "**This chatbot was created by Anointing**, a skilled professional in AI development, "
-            "graphic design, and modern website creation. "
-            "For inquiries or services, reach out via email: **anointingomowumi62@gmail.com**"
+            "**This chatbot was created by Anointing**, an expert in AI development, "
+            "graphic design, and website creation.\n\n"
+            "📧 Contact: **anointingomowumi62@gmail.com**"
         )
 
     if mode == "fast":
