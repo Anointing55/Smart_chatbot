@@ -1,3 +1,4 @@
-gradio
+gradio==4.35.2
 cohere
 requests
+protobuf==3.20.0
