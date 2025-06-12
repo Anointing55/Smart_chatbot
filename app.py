@@ -2,15 +2,17 @@ import os
 import gradio as gr
 import requests
 import cohere
+from dotenv import load_dotenv
 
-# Load environment variables
+# ─── Load Environment Variables from .env ───
+load_dotenv()
 COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 SERPAPI_KEY = os.getenv("SERPAPI_KEY")
 
 co = cohere.Client(COHERE_API_KEY)
 
-# ───── Query Functions ─────
+# ─── Query Functions ───
 def query_together(prompt):
     url = "https://api.together.xyz/v1/chat/completions"
     headers = {
@@ -38,22 +40,39 @@ def query_cohere(prompt):
         return f"[Cohere Error] {e}"
 
 def query_serpapi(prompt):
+    if not SERPAPI_KEY:
+        return "[SerpAPI Error] API key not set."
+
     try:
         params = {
             "engine": "google",
             "q": prompt,
-            "api_key": SERPAPI_KEY
+            "api_key": SERPAPI_KEY,
+            "num": 5
         }
         response = requests.get("https://serpapi.com/search", params=params)
         result = response.json()
-        if "organic_results" in result and result["organic_results"]:
-            return result["organic_results"][0].get("snippet", "No snippet available.")
-        else:
-            return "No relevant results found from search."
-    except Exception as e:
-        return f"[SerpAPI Error] {e}"
 
-# ───── Trigger Checks ─────
+        if "error" in result:
+            return f"[SerpAPI Error] {result['error']}"
+
+        organic_results = result.get("organic_results", [])
+        if not organic_results:
+            return "🔍 No relevant results found."
+
+        snippets = []
+        for res in organic_results[:3]:
+            title = res.get("title", "No title")
+            snippet = res.get("snippet", "No snippet.")
+            link = res.get("link", "")
+            snippets.append(f"**{title}**\n{snippet}\n🔗 {link}\n")
+
+        return "🔍 **Top Google Results**:\n\n" + "\n---\n".join(snippets)
+
+    except Exception as e:
+        return f"[SerpAPI Exception] {e}"
+
+# ─── Trigger Check ───
 def is_identity_or_service_question(prompt):
     prompt = prompt.lower()
     identity_keywords = [
@@ -67,7 +86,7 @@ def is_identity_or_service_question(prompt):
     ]
     return any(kw in prompt for kw in identity_keywords + service_keywords)
 
-# ───── Router Function ─────
+# ─── Smart Router ───
 def smart_chat_router(prompt, mode="fast"):
     prompt = prompt.strip()
     if not prompt:
@@ -89,7 +108,7 @@ def smart_chat_router(prompt, mode="fast"):
     else:
         return "Invalid mode selected."
 
-# ───── Gradio UI ─────
+# ─── Gradio UI ───
 with gr.Blocks() as demo:
     gr.Markdown("## 🤖 Smart AI Chatbot")
     mode = gr.Radio(["fast", "deep", "search"], label="Choose Mode", value="fast")
@@ -97,5 +116,5 @@ with gr.Blocks() as demo:
     response_output = gr.Textbox(label="Bot's Answer", lines=10)
     user_input.submit(fn=smart_chat_router, inputs=[user_input, mode], outputs=response_output)
 
-# For Render hosting
-demo.launch(server_name="0.0.0.0", server_port=8080)
+# ─── Launch ───
+demo.launch(share=True)
