@@ -2,13 +2,11 @@ import os
 import gradio as gr
 import requests
 import cohere
-from dotenv import load_dotenv
 
-# ─── Load Environment Variables from .env ───
-load_dotenv()
-COHERE_API_KEY = os.getenv("COHERE_API_KEY")
-TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
-SERPAPI_KEY = os.getenv("SERPAPI_KEY")
+# ─── Load API Keys ───
+COHERE_API_KEY = os.environ.get("COHERE_API_KEY")
+TOGETHER_API_KEY = os.environ.get("TOGETHER_API_KEY")
+SERPAPI_KEY = os.environ.get("SERPAPI_KEY")
 
 co = cohere.Client(COHERE_API_KEY)
 
@@ -116,5 +114,5 @@ with gr.Blocks() as demo:
     response_output = gr.Textbox(label="Bot's Answer", lines=10)
     user_input.submit(fn=smart_chat_router, inputs=[user_input, mode], outputs=response_output)
 
-# ─── Launch ───
-demo.launch(share=True)
+# ─── Launch (Render Settings) ───
+demo.launch(server_name="0.0.0.0", server_port=8080)
