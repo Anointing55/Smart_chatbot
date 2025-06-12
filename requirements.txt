@@ -1,4 +1,5 @@
-gradio
-cohere
+gradio==5.33.2
+fastapi
+uvicorn
 requests
-protobuf==3.20.0
+cohere
