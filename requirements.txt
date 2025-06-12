@@ -1,4 +1,4 @@
-gradio==4.35.2
+gradio
 cohere
 requests
 protobuf==3.20.0
